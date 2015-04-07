@@ -2,6 +2,7 @@
 
 var App = function() {
   this.init();
+  this.lastQueryTime = '';
 };
 
 App.prototype.init = function() {
@@ -16,15 +17,17 @@ App.prototype.init = function() {
     thisApp.handleSubmit();
   });
 
-  this.handleSubmit();
-  var messages = this.fetch(this.addMessage);
-
-  // var func = this.fetch.bind(this);
-  // var fu   = this.addMessage.bind(this)
-  // setTimeout(function(){
-  //   // debugger;
-  //   console.log(func(fu));
-  // }, 1000)
+  var thisFetch = this.fetch.bind(this);
+  var thisAddMessage = this.addMessage.bind(this);
+  setInterval(function() {
+    var fetchResponse = thisFetch(thisAddMessage);
+    console.log(fetchResponse);
+    try{
+      this.lastQueryTime = fetchResponse.responseJSON.results[0].createdAt;
+    }catch(Error){
+      console.log("error no fetch data");
+    }
+  }, 5000);
 };
 
 App.prototype.send = function(message) {
@@ -43,10 +46,25 @@ App.prototype.send = function(message) {
 };
 
 App.prototype.fetch = function(callback) {
-  $.ajax({
+  return $.ajax({
     url: 'https://api.parse.com/1/classes/chatterbox',
     data: {"order": "-createdAt"},
     type: 'GET',
+    contentType: 'application/json',
+    success: function(data){
+
+      //solution to update snafu here
+      _.each(data.results, callback);
+    },
+    error: function(){
+      console.error('hey error');
+    }
+  }).done();
+};
+
+App.prototype.update = function(callback, lastQuery) {
+  $.ajax({
+    url: 'https://api.parse.com/1/classes/chatterbox',
     contentType: 'application/json',
     success: function(data){
       console.log(data.results);
@@ -56,7 +74,8 @@ App.prototype.fetch = function(callback) {
       console.error('hey error');
     }
   });
-
+  var thisUpdate = this.update.bind(this, callback, lastQuery);
+  // setTimeout(thisUpdate, 1000);
 };
 
 App.prototype.clearMessages = function() {
@@ -64,9 +83,9 @@ App.prototype.clearMessages = function() {
 };
 
 App.prototype.addMessage = function(message) {
-  var html = '<div class = "chat"><span class="username">' + message.username + '</span>';
-  html += '<span class = "message">' + message.text + '</span>';
-  html += '<aside class = "roomname">' + message.roomname + '</aside></div>';
+  var html = '<div class = "chat"><span class="username">' + _.escape(message.username) + '</span>';
+  html += '<span class = "message">' + _.escape(message.text) + '</span>';
+  html += '<aside class = "roomname">' + _.escape(message.roomname) + '</aside></div>';
   $("#chats").append(html);
 };
 
