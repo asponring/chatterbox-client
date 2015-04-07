@@ -3,31 +3,43 @@
 var App = function() {
   this.init();
   this.lastQueryTime = '';
+  this.roomList = {};
+  this.currentRoom = "general";
 };
 
 App.prototype.init = function() {
   var thisApp = this;
-  $(".username").click(function() {
-    thisApp.addFriend(this.textContent);
+
+  $(document).ready(function(){
+    $(".username").click(function() {
+      thisApp.addFriend(this.textContent);
+    });
+
+    $(".rooms").change(function(){
+      console.log(this.value);
+      thisApp.currentRoom = this.value;
+      if(this.value !== 'general'){
+        thisApp.filterByRoom(thisApp.currentRoom);
+      }
+    });
+    $(".submit").click(function() {
+      console.log(thisApp, 'thisapp');
+      var message = {};
+      message.text = $('.chatMessageText').val();
+      message.username = window.location.search.split('=')[1];
+      message.roomname = 'Brogrammers paradise';
+      thisApp.handleSubmit(message);
+    });
   });
 
   var html = '<form id="send"><input type="submit" class="submit"></form>'
   $("#main").append(html);
-  $("#send .submit").submit(function() {
-    thisApp.handleSubmit();
-  });
 
   var thisFetch = this.fetch.bind(this);
   var thisAddMessage = this.addMessage.bind(this);
   setInterval(function() {
     var fetchResponse = thisFetch(thisAddMessage);
-    console.log(fetchResponse);
-    try{
-      this.lastQueryTime = fetchResponse.responseJSON.results[0].createdAt;
-    }catch(Error){
-      console.log("error no fetch data");
-    }
-  }, 5000);
+  }, 1000);
 };
 
 App.prototype.send = function(message) {
@@ -37,7 +49,7 @@ App.prototype.send = function(message) {
     data: JSON.stringify(message),
     contentType: 'application/json',
     success: function(data){
-      console.log("success");
+      console.log("success sent message");
     },
     error: function(){
       console.log('hey error');
@@ -46,36 +58,34 @@ App.prototype.send = function(message) {
 };
 
 App.prototype.fetch = function(callback) {
-  return $.ajax({
+
+  var that = this;
+  var getLastTime = function(data) {
+    if(data[0] !== undefined)
+      that.lastQueryTime = data[0].createdAt;
+  };
+
+  console.log(this.lastQueryTime);
+
+  var queryTime = this.lastQueryTime || "2015-04-07T17:56:20.050Z";
+  $.ajax({
     url: 'https://api.parse.com/1/classes/chatterbox',
-    data: {"order": "-createdAt"},
+    // data: {"order": "-createdAt", "where": {}},
+    data: {"order": "-createdAt", "where": {"createdAt": {"$gt": queryTime}}},
     type: 'GET',
     contentType: 'application/json',
     success: function(data){
 
-      //solution to update snafu here
-      _.each(data.results, callback);
-    },
-    error: function(){
-      console.error('hey error');
-    }
-  }).done();
-};
+      console.log(data);
 
-App.prototype.update = function(callback, lastQuery) {
-  $.ajax({
-    url: 'https://api.parse.com/1/classes/chatterbox',
-    contentType: 'application/json',
-    success: function(data){
-      console.log(data.results);
+      getLastTime(data.results);
+
       _.each(data.results, callback);
     },
     error: function(){
       console.error('hey error');
     }
   });
-  var thisUpdate = this.update.bind(this, callback, lastQuery);
-  // setTimeout(thisUpdate, 1000);
 };
 
 App.prototype.clearMessages = function() {
@@ -83,6 +93,7 @@ App.prototype.clearMessages = function() {
 };
 
 App.prototype.addMessage = function(message) {
+  this.addRoom( _.escape(message.roomname));
   var html = '<div class = "chat"><span class="username">' + _.escape(message.username) + '</span>';
   html += '<span class = "message">' + _.escape(message.text) + '</span>';
   html += '<aside class = "roomname">' + _.escape(message.roomname) + '</aside></div>';
@@ -90,8 +101,21 @@ App.prototype.addMessage = function(message) {
 };
 
 App.prototype.addRoom = function(roomName) {
-  var html = '<div id="roomSelect"><a href="#">' + roomName + '</a></div>';
-  $("#main").html(html);
+  if (!this.roomList.hasOwnProperty(roomName)) {
+    this.roomList[roomName] = true;
+    $(".rooms").append("<option value=\"" + roomName + "\">" + roomName + "</option>");
+  }
+  // var html = '<div id="roomSelect"><a href="#">' + roomName + '</a></div>';
+  // $("#main").html(html);
+};
+
+App.prototype.filterByRoom = function(roomname) {
+  $('#chats').children().each(function(){
+    if(this.children[2].innerText !== roomname){
+      $(this).toggle();
+    }
+
+  });
 };
 
 App.prototype.addFriend = function(username) {
@@ -99,12 +123,7 @@ App.prototype.addFriend = function(username) {
 };
 
 App.prototype.handleSubmit = function(message) {
-  var testmsg = {
-    'username': 'markandandy',
-    'text': 'pooopooopooop',
-    'roomname': 'HR27yo'
-  };
-  this.send(testmsg);
+  this.send(message);
 };
 
 var app = new App();

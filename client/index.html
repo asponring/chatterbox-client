@@ -13,11 +13,22 @@
     <script src="scripts/app.js"></script>
   </head>
   <body>
+    <aside>
+      <select class="rooms">
+        <option value = 'general'>general</option>
+      </select>
+    </aside>
     <div id="main">
       <h1>chatterbox</h1>
       <!-- Your HTML goes here! -->
       <div id="chats">
       </div>
     </div>
+
+    <form class = "chatTextContainer" id="send" >
+      <input type = "textArea" class = "chatMessageText" >
+      <button type="button" class="submit" >Send Message</button>
+    </form>
+
   </body>
 </html>
