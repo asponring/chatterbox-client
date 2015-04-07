@@ -67,6 +67,13 @@ form input[type=text] {
 
 .chat .username {
     font-weight: 800;
+    display:block;
+}
+.chat .roomname{
+    display:block;
+    clear: both;
+    float:right;
+    font-size: 12px;
 }
 
 .chat:hover {
